@@ -37,17 +37,11 @@
                 view: 'Auto',
                 language: 'en-US',
                 authOptions: {
-                    authType: "anonymous",
-                    getToken: function (resolve, reject, map) {
-                        var xhttp = new XMLHttpRequest();
-                        resolveFunc = resolve;
-                        rejectFunc = reject;
-                        xhttp.onreadystatechange = tokenResolver;
-                        xhttp.open("GET", "/api/token", true);
-                        xhttp.send();
-                    }
+                    authType: "subscriptionKey",
+                    subscriptionKey: "1A2WqGbNPrXkvJ7fANu170nqymSUlZupgApmCxJi4iqyLyA8yW07JQQJ99BDACYeBjFjiS1pAAAgAZMP21L5"
                 }
             });
+
 
             map.events.add('ready', function () {
                 var datasource = new atlas.source.DataSource();
