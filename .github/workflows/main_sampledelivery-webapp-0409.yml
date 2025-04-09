@@ -16,24 +16,28 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '6.0.x'
 
-      - name: Build with dotnet
-        run: dotnet build Source/SampleDeliveryService.csproj --configuration Release
+      - name: Restore dependencies
+        run: dotnet restore SampleDeliveryService/Source/SampleDeliveryService.csproj
 
-      - name: dotnet publish
-        run: dotnet publish SampleDeliveryService/Source/SampleDeliveryService.csproj -c Release -o /usr/share/dotnet/myapp
+      - name: Build with dotnet
+        run: dotnet build SampleDeliveryService/Source/SampleDeliveryService.csproj --configuration Release --no-restore
+
+      - name: Publish app
+        run: dotnet publish SampleDeliveryService/Source/SampleDeliveryService.csproj --configuration Release --output /usr/share/dotnet/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: myapp
+          path: /usr/share/dotnet/myapp
 
   deploy:
     runs-on: ubuntu-latest
