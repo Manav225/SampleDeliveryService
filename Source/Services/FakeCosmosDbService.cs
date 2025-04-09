@@ -59,9 +59,24 @@ namespace SampleDeliveryService.Services
             return Task.FromResult((IEnumerable<Order>)_orders);
         }
 
-        public Task UpdateItemAsync(Order order)
+        public Task UpdateItemAsync(Order updatedOrder)
         {
+            var existing = _orders.FirstOrDefault(o => o.Id == updatedOrder.Id);
+            if (existing != null)
+            {
+                existing.FirstName = updatedOrder.FirstName;
+                existing.LastName = updatedOrder.LastName;
+                existing.Packages = updatedOrder.Packages;
+                existing.Street = updatedOrder.Street;
+                existing.City = updatedOrder.City;
+                existing.State = updatedOrder.State;
+                existing.ZipCode = updatedOrder.ZipCode;
+                existing.Latitude = updatedOrder.Latitude;
+                existing.Longitude = updatedOrder.Longitude;
+                existing.Completed = updatedOrder.Completed;
+            }
             return Task.CompletedTask;
         }
+
     }
 }
