@@ -17,22 +17,30 @@
             navigator.geolocation.getCurrentPosition(showPosition, function (error) {
                 alert("Geolocation failed: " + error.message + ". Using fallback location.");
                 console.warn("Geolocation error:", error);
-                // Fallback to Seattle if user denies or it fails
-                GetMap(-122.33, 47.6);
+                // Fallback coordinates (Seattle)
+                GetMap(47.6062, -122.3321);
             });
         } else {
-            alert("Geolocation is not supported by this browser. Using fallback location.");
-            GetMap(-122.33, 47.6);
+            alert("Geolocation not supported. Using fallback location.");
+            GetMap(47.6062, -122.3321);
         }
 
         function showPosition(position) {
             const user_lat = position.coords.latitude;
             const user_lon = position.coords.longitude;
-            GetMap(user_lon, user_lat);
+            GetMap(user_lat, user_lon);
         }
     });
 
-    function GetMap(user_lon, user_lat) {
+    function GetMap(user_lat, user_lon) {
+        // Parse model coordinates safely
+        const endLat = parseFloat("@Model.Latitude");
+        const endLon = parseFloat("@Model.Longitude");
+        const endPosition = [endLon, endLat];
+
+        console.log("📍 User location:", user_lat, user_lon);
+        console.log("📦 Drop-off location:", endLat, endLon);
+
         map = new atlas.Map('myMap', {
             center: [user_lon, user_lat],
             zoom: 12,
@@ -67,7 +75,6 @@
             }));
 
             const startPosition = [user_lon, user_lat];
-            const endPosition = [@Model.Longitude, @Model.Latitude];
 
             const startPoint = new atlas.data.Feature(new atlas.data.Point(startPosition), {
                 title: 'Your Location',
@@ -86,12 +93,16 @@
                 padding: 50
             });
 
-            // Fetch route from Azure Maps Directions API
-            const directionsUrl = `https://atlas.microsoft.com/route/directions/json?api-version=1.0&query=${startPosition[1]},${startPosition[0]}:${endPosition[1]},${endPosition[0]}&subscription-key=1A2WqGbNPrXkvJ7fANu170nqymSUlZupgApmCxJi4iqyLyA8yW07JQQJ99BDACYeBjFjiS1pAAAgAZMP21L5`;
+            const directionsUrl = `https://atlas.microsoft.com/route/directions/json?api-version=1.0&query=${user_lat},${user_lon}:${endLat},${endLon}&subscription-key=1A2WqGbNPrXkvJ7fANu170nqymSUlZupgApmCxJi4iqyLyA8yW07JQQJ99BDACYeBjFjiS1pAAAgAZMP21L5`;
 
             fetch(directionsUrl)
                 .then(res => res.json())
                 .then(data => {
+                    if (!data.routes || !data.routes.length) {
+                        alert("No route found.");
+                        return;
+                    }
+
                     const route = data.routes[0];
                     const coords = route.legs.flatMap(leg =>
                         leg.points.map(p => [p.longitude, p.latitude])
