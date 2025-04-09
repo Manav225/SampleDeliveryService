@@ -31,7 +31,7 @@ jobs:
         run: dotnet build Source/SampleDeliveryService.csproj --configuration Release --no-restore
 
       - name: Publish app
-        run: dotnet publish Source/SampleDeliveryService.csproj --configuration Release --output ./myapp
+        run: dotnet publish Source/SampleDeliveryService.csproj -c Release -r linux-x64 --self-contained false --output ./myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
