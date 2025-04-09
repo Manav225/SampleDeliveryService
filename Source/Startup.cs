@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,7 +28,7 @@ namespace SampleDeliveryService
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // ✅ Add culture fallback
+            // ✅ Add safe culture fallback to avoid CultureNotFoundException
             var defaultCulture = new CultureInfo("en-US");
             var localizationOptions = new RequestLocalizationOptions
             {
@@ -37,37 +36,39 @@ namespace SampleDeliveryService
                 SupportedCultures = new List<CultureInfo> { defaultCulture },
                 SupportedUICultures = new List<CultureInfo> { defaultCulture }
             };
-            services.Configure<RequestLocalizationOptions>(opts => {
+            services.Configure<RequestLocalizationOptions>(opts =>
+            {
                 opts.DefaultRequestCulture = localizationOptions.DefaultRequestCulture;
                 opts.SupportedCultures = localizationOptions.SupportedCultures;
                 opts.SupportedUICultures = localizationOptions.SupportedUICultures;
+
+                // ❗ Optional: Clear culture detection from headers if you're still getting bad inputs
+                // opts.RequestCultureProviders.Clear();
             });
 
             services.AddCors(options =>
             {
-                options.AddPolicy("LocalAzure",
-                    builder =>
-                    {
-                        builder.WithOrigins("http://localhost", "http://<App Service URL>")
-                               .WithMethods("GET");
-                    });
+                options.AddPolicy("LocalAzure", builder =>
+                {
+                    builder.WithOrigins("http://localhost", "http://<App Service URL>")
+                           .WithMethods("GET");
+                });
             });
 
             services.AddTransient<TokenAuthorizationProvider>();
-
             services.AddControllers();
             services.AddMvc().AddRazorRuntimeCompilation();
 
-            // 🧪 Use fake Cosmos service for now
+            // 🔧 Temporary fallback service
             services.AddSingleton<ICosmosDbService, FakeCosmosDbService>();
 
-            // Uncomment for actual CosmosDB
+            // ✅ Enable this when using actual Cosmos DB
             // services.AddSingleton<ICosmosDbService>(
             //     InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
 
             services.AddAuthentication("Bearer").AddJwtBearer(options =>
             {
-                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
+                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                 {
                     IssuerSigningKey = TokenAuthorizationProvider.CreateSecurityKey(),
                     ValidIssuer = TokenAuthorizationProvider.Issuer,
@@ -77,21 +78,21 @@ namespace SampleDeliveryService
 
             services.AddAuthorization(options =>
             {
-                AuthorizationPolicyBuilder builder = new AuthorizationPolicyBuilder("Bearer");
+                var builder = new AuthorizationPolicyBuilder("Bearer");
                 options.AddPolicy("SessionToken", builder.RequireAuthenticatedUser().Build());
             });
         }
 
         private static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection)
         {
-            string databaseName = configurationSection.GetSection("DatabaseName").Value;
-            string containerName = configurationSection.GetSection("ContainerName").Value;
-            string account = configurationSection.GetSection("Account").Value;
-            string key = configurationSection.GetSection("Key").Value;
+            string databaseName = configurationSection["DatabaseName"];
+            string containerName = configurationSection["ContainerName"];
+            string account = configurationSection["Account"];
+            string key = configurationSection["Key"];
 
-            Microsoft.Azure.Cosmos.CosmosClient client = new Microsoft.Azure.Cosmos.CosmosClient(account, key);
-            CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerName);
-            Microsoft.Azure.Cosmos.DatabaseResponse database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
+            var client = new Microsoft.Azure.Cosmos.CosmosClient(account, key);
+            var cosmosDbService = new CosmosDbService(client, databaseName, containerName);
+            var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
             await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
 
             return cosmosDbService;
@@ -99,8 +100,9 @@ namespace SampleDeliveryService
 
         public void Configure(IApplicationBuilder app, IHostEnvironment env)
         {
-            // ✅ Apply culture localization
-            var localizationOptions = app.ApplicationServices.GetService<Microsoft.Extensions.Options.IOptions<RequestLocalizationOptions>>().Value;
+            // ✅ Register culture fallback
+            var localizationOptions = app.ApplicationServices
+                .GetService<Microsoft.Extensions.Options.IOptions<RequestLocalizationOptions>>().Value;
             app.UseRequestLocalization(localizationOptions);
 
             if (env.IsDevelopment())
