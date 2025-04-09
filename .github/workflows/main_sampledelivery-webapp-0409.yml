@@ -25,13 +25,13 @@ jobs:
           dotnet-version: '6.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore SampleDeliveryService/Source/SampleDeliveryService.csproj
+        run: dotnet restore Source/SampleDeliveryService.csproj
 
       - name: Build with dotnet
-        run: dotnet build SampleDeliveryService/Source/SampleDeliveryService.csproj --configuration Release --no-restore
+        run: dotnet build Source/SampleDeliveryService.csproj --configuration Release --no-restore
 
       - name: Publish app
-        run: dotnet publish SampleDeliveryService/Source/SampleDeliveryService.csproj --configuration Release --output /usr/share/dotnet/myapp
+        run: dotnet publish Source/SampleDeliveryService.csproj --configuration Release --output /usr/share/dotnet/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
