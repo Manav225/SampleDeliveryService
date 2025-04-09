@@ -44,7 +44,6 @@ namespace SampleDeliveryService
             services.AddControllers(); // ✅ Needed to support [ApiController]-based endpoints
 
             services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddRazorRuntimeCompilation();
 
             //services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
