@@ -47,9 +47,7 @@ namespace SampleDeliveryService
                 .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddRazorRuntimeCompilation();
 
-            services.AddSingleton<ICosmosDbService>(
-                InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult()
-            );
+            //services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
 
             services.AddAuthentication("Bearer").AddJwtBearer(options =>
             {
