@@ -18,7 +18,6 @@ namespace SampleDeliveryService
 {
     public class Startup
     {
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -39,9 +38,19 @@ namespace SampleDeliveryService
                                .WithMethods("GET");
                     });
             });
+
             services.AddTransient<TokenAuthorizationProvider>();
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddRazorRuntimeCompilation();  
-            services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+
+            services.AddControllers(); // ✅ Needed to support [ApiController]-based endpoints
+
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Latest)
+                .AddRazorRuntimeCompilation();
+
+            services.AddSingleton<ICosmosDbService>(
+                InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult()
+            );
+
             services.AddAuthentication("Bearer").AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
@@ -51,6 +60,7 @@ namespace SampleDeliveryService
                     ValidAudience = TokenAuthorizationProvider.Audience
                 };
             });
+
             services.AddAuthorization(options =>
             {
                 AuthorizationPolicyBuilder builder = new AuthorizationPolicyBuilder("Bearer");
@@ -64,6 +74,7 @@ namespace SampleDeliveryService
             string containerName = configurationSection.GetSection("ContainerName").Value;
             string account = configurationSection.GetSection("Account").Value;
             string key = configurationSection.GetSection("Key").Value;
+
             Microsoft.Azure.Cosmos.CosmosClient client = new Microsoft.Azure.Cosmos.CosmosClient(account, key);
             CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerName);
             Microsoft.Azure.Cosmos.DatabaseResponse database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
@@ -82,20 +93,27 @@ namespace SampleDeliveryService
             {
                 app.UseExceptionHandler("/Orders/Error");
                 app.UseHsts();
-            }           
+            }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();            
+            app.UseStaticFiles();
+
             app.UseRouting();
+
             app.UseAuthentication();
             app.UseAuthorization();
+
             app.UseCors();
+
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers(); // ✅ Enables API endpoints with [ApiController]
+
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Orders}/{action=Index}/{id?}");
-                endpoints.MapRazorPages();
+
+                endpoints.MapRazorPages(); // ✅ Keeps Razor Pages support
             });
         }
     }
