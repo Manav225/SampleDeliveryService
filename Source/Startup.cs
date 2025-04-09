@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,20 +33,24 @@ namespace SampleDeliveryService
                 options.AddPolicy("LocalAzure",
                     builder =>
                     {
-                        builder.WithOrigins("http://localhost",
-                                            "http://<App Service URL>")
+                        builder.WithOrigins("http://localhost", "http://<App Service URL>")
                                .WithMethods("GET");
                     });
             });
 
             services.AddTransient<TokenAuthorizationProvider>();
 
-            services.AddControllers(); // ✅ Needed to support [ApiController]-based endpoints
+            services.AddControllers(); // ✅ For API endpoints
 
             services.AddMvc()
                 .AddRazorRuntimeCompilation();
 
-            //services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+            // 🔧 TEMPORARY fallback to prevent crash if Cosmos DB is not configured
+            services.AddSingleton<ICosmosDbService, FakeCosmosDbService>();
+
+            // Uncomment the below to enable real Cosmos DB once you're ready
+            // services.AddSingleton<ICosmosDbService>(
+            //     InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
 
             services.AddAuthentication("Bearer").AddJwtBearer(options =>
             {
@@ -104,7 +108,7 @@ namespace SampleDeliveryService
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers(); // ✅ Enables API endpoints with [ApiController]
+                endpoints.MapControllers(); // ✅ Enables [ApiController] routing
 
                 endpoints.MapControllerRoute(
                     name: "default",
