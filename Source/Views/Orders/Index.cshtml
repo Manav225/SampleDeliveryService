@@ -4,14 +4,9 @@
     ViewData["Title"] = "Sample Delivery Service";
 }
 
-<!-- ✅ Azure Maps SDK -->
-<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
-<link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css" type="text/css"/>
-<link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css" />
-<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
-<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas-service.min.js"></script>
-<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas-space.min.js"></script>
-<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas-animations.min.js"></script>
+<!-- ✅ Azure Maps SDK v3 -->
+<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+<link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" type="text/css"/>
 
 <p>Pending deliveries:</p>
 
@@ -19,68 +14,77 @@
 <div id="myMap" style="height: 500px; width: 100%; margin-bottom: 20px;"></div>
 
 <script type="text/javascript">
-    window.onload = GetMap;
+    document.addEventListener("DOMContentLoaded", function () {
+        window.onload = GetMap;
 
-    function GetMap() {
-        var resolveFunc = null;
-        var rejectFunc = null;
+        function GetMap() {
+            var resolveFunc = null;
+            var rejectFunc = null;
 
-        function tokenResolver() {
-            if (this.readyState === 4 && this.status === 200) {
-                resolveFunc(this.responseText);
-            } else if (this.status !== 200) {
-                rejectFunc(this.responseText);
-            }
-        }
-
-        var map, animation;
-
-        map = new atlas.Map('myMap', {
-            center: [-122.33, 47.6],
-            zoom: 9,
-            view: 'Auto',
-            language: 'en-US',
-            authOptions: {
-                authType: "subscriptionKey",
-                subscriptionKey: "", // use getToken instead
-                getToken: function (resolve, reject, map) {
-                    var xhttp = new XMLHttpRequest();
-                    resolveFunc = resolve;
-                    rejectFunc = reject;
-                    xhttp.onreadystatechange = tokenResolver;
-                    xhttp.open("GET", "/api/token", true);
-                    xhttp.send();
-                }
-            }
-        });
-
-        map.events.add('ready', function () {
-            var datasource = new atlas.source.DataSource();
-            map.sources.add(datasource);
-
-            map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
-                iconOptions: {
-                    image: 'pin-round-darkblue',
-                    anchor: 'center',
-                    allowOverlap: true
-                }
-            }));
-
-            var points = [];
-            @foreach (var order in Model)
-            {
-                if (order != null)
-                {
-                    string coordinates = order.Longitude + "," + order.Latitude;
-                    <text>points.push(new atlas.data.Point([@coordinates]));</text>
+            function tokenResolver() {
+                if (this.readyState === 4 && this.status === 200) {
+                    resolveFunc(this.responseText);
+                } else if (this.status !== 200) {
+                    rejectFunc(this.responseText);
                 }
             }
 
-            animation = atlas.animations.drop(points, datasource, null, {
-                easing: 'easeOutBounce',
-                duration: 1000,
-                autoPlay: true
+            var map, animation;
+
+            map = new atlas.Map('myMap', {
+                center: [-122.33, 47.6],
+                zoom: 9,
+                view: 'Auto',
+                language: 'en-US',
+                authOptions: {
+                    authType: "anonymous",
+                    getToken: function (resolve, reject, map) {
+                        var xhttp = new XMLHttpRequest();
+                        resolveFunc = resolve;
+                        rejectFunc = reject;
+                        xhttp.onreadystatechange = tokenResolver;
+                        xhttp.open("GET", "/api/token", true);
+                        xhttp.send();
+                    }
+                }
             });
-        });
-    }
+
+            map.events.add('ready', function () {
+                var datasource = new atlas.source.DataSource();
+                map.sources.add(datasource);
+
+                map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
+                    iconOptions: {
+                        image: 'pin-round-darkblue',
+                        anchor: 'center',
+                        allowOverlap: true
+                    }
+                }));
+
+                var points = [];
+                @foreach (var order in Model)
+                {
+                    if (order != null)
+                    {
+                        string coordinates = order.Longitude + "," + order.Latitude;
+                        <text>points.push(new atlas.data.Point([@coordinates]));</text>
+                    }
+                }
+
+                // Custom animation logic (SDK v3 doesn't include animations like v2, so fallback gracefully or skip if needed)
+                if (atlas.animations && atlas.animations.drop) {
+                    animation = atlas.animations.drop(points, datasource, null, {
+                        easing: 'easeOutBounce',
+                        duration: 1000,
+                        autoPlay: true
+                    });
+                } else {
+                    // fallback: just add points without animation
+                    points.forEach(point => {
+                        datasource.add(new atlas.data.Feature(point));
+                    });
+                }
+            });
+        }
+    });
 </script>
