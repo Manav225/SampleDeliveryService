@@ -11,7 +11,7 @@ namespace SampleDeliveryService.Controllers
 {
     [Route("api/token")]
     [ApiController]
-    [Authorize("SessionToken")]
+    // [Authorize("SessionToken")] ❌ Temporarily comment this line
     public class TokenController : ControllerBase
     {
         [HttpGet]
