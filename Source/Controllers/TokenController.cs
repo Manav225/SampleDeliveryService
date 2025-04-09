@@ -1,46 +1,24 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Authorization;
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
-using Microsoft.Azure.Services.AppAuthentication;
+using System;
 
 namespace SampleDeliveryService.Controllers
 {
     [Route("api/token")]
     [ApiController]
-    // [Authorize("SessionToken")] ❌ Temporarily comment this line
+    [EnableCors("LocalAzure")]
     public class TokenController : ControllerBase
     {
         [HttpGet]
-        [EnableCors("LocalAzure")]
-        public async Task<IActionResult> GetTokenAsync()
+        public IActionResult GetToken()
         {
-            try
-            {
-                // Get Key Vault URI from environment
-                var keyVaultUri = Environment.GetEnvironmentVariable("KEY_VAULT_URI");
-                if (string.IsNullOrEmpty(keyVaultUri))
-                    return BadRequest("KEY_VAULT_URI not configured.");
+            // Use the Azure Maps subscription key directly from app settings
+            var subscriptionKey = Environment.GetEnvironmentVariable("AZURE_MAPS_SUBSCRIPTION_KEY");
 
-                // Create a secret client
-                var secretClient = new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
+            if (string.IsNullOrEmpty(subscriptionKey))
+                return BadRequest("AZURE_MAPS_SUBSCRIPTION_KEY is not configured in App Settings.");
 
-                // Get the Azure Maps connection string from Key Vault
-                var secretName = "AzureMapsPrimaryKey"; // 🔁 Make sure this secret exists
-                KeyVaultSecret mapsSecret = await secretClient.GetSecretAsync(secretName);
-
-                var tokenProvider = new AzureServiceTokenProvider(mapsSecret.Value);
-                string accessToken = await tokenProvider.GetAccessTokenAsync("https://atlas.microsoft.com/", cancellationToken: HttpContext.RequestAborted);
-
-                return Ok(accessToken);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Token generation failed: {ex.Message}");
-            }
+            return Ok(subscriptionKey);
         }
     }
 }
