@@ -1,31 +1,46 @@
-﻿using System;
-using Azure.Identity;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Cors;
-using Azure.Security.KeyVault.Secrets;
 using Microsoft.AspNetCore.Authorization;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Azure.Services.AppAuthentication;
 
 namespace SampleDeliveryService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/token")]
     [ApiController]
     [Authorize("SessionToken")]
     public class TokenController : ControllerBase
     {
         [HttpGet]
-        [Route("")]
         [EnableCors("LocalAzure")]
         public async Task<IActionResult> GetTokenAsync()
         {
-            var client = new SecretClient(new Uri("Key Vault URL"), new DefaultAzureCredential());
-            var secret = await client.GetSecretAsync("Maps Connection String Secret");
+            try
+            {
+                // Get Key Vault URI from environment
+                var keyVaultUri = Environment.GetEnvironmentVariable("KEY_VAULT_URI");
+                if (string.IsNullOrEmpty(keyVaultUri))
+                    return BadRequest("KEY_VAULT_URI not configured.");
 
-            AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(secret.Value.Value);
+                // Create a secret client
+                var secretClient = new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
 
-            string accessToken = await tokenProvider.GetAccessTokenAsync("https://atlas.microsoft.com/", cancellationToken: HttpContext.RequestAborted);
-            return Ok(accessToken);
+                // Get the Azure Maps connection string from Key Vault
+                var secretName = "AzureMapsPrimaryKey"; // 🔁 Make sure this secret exists
+                KeyVaultSecret mapsSecret = await secretClient.GetSecretAsync(secretName);
+
+                var tokenProvider = new AzureServiceTokenProvider(mapsSecret.Value);
+                string accessToken = await tokenProvider.GetAccessTokenAsync("https://atlas.microsoft.com/", cancellationToken: HttpContext.RequestAborted);
+
+                return Ok(accessToken);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Token generation failed: {ex.Message}");
+            }
         }
     }
 }
