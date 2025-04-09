@@ -71,7 +71,7 @@ namespace SampleDeliveryService.Services
                     Latitude = "47.6101",
                     Longitude = "-122.2015",
                     Completed = true
-                }
+                },
                 new Order
                 {
                     Id = "3",
