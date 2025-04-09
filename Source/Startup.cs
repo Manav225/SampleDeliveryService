@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using SampleDeliveryService.Models;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SampleDeliveryService.Services;
+using Microsoft.AspNetCore.Localization;
 
 namespace SampleDeliveryService
 {
@@ -25,9 +27,22 @@ namespace SampleDeliveryService
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // ✅ Add culture fallback
+            var defaultCulture = new CultureInfo("en-US");
+            var localizationOptions = new RequestLocalizationOptions
+            {
+                DefaultRequestCulture = new RequestCulture(defaultCulture),
+                SupportedCultures = new List<CultureInfo> { defaultCulture },
+                SupportedUICultures = new List<CultureInfo> { defaultCulture }
+            };
+            services.Configure<RequestLocalizationOptions>(opts => {
+                opts.DefaultRequestCulture = localizationOptions.DefaultRequestCulture;
+                opts.SupportedCultures = localizationOptions.SupportedCultures;
+                opts.SupportedUICultures = localizationOptions.SupportedUICultures;
+            });
+
             services.AddCors(options =>
             {
                 options.AddPolicy("LocalAzure",
@@ -40,15 +55,13 @@ namespace SampleDeliveryService
 
             services.AddTransient<TokenAuthorizationProvider>();
 
-            services.AddControllers(); // ✅ For API endpoints
+            services.AddControllers();
+            services.AddMvc().AddRazorRuntimeCompilation();
 
-            services.AddMvc()
-                .AddRazorRuntimeCompilation();
-
-            // 🔧 TEMPORARY fallback to prevent crash if Cosmos DB is not configured
+            // 🧪 Use fake Cosmos service for now
             services.AddSingleton<ICosmosDbService, FakeCosmosDbService>();
 
-            // Uncomment the below to enable real Cosmos DB once you're ready
+            // Uncomment for actual CosmosDB
             // services.AddSingleton<ICosmosDbService>(
             //     InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
 
@@ -86,6 +99,10 @@ namespace SampleDeliveryService
 
         public void Configure(IApplicationBuilder app, IHostEnvironment env)
         {
+            // ✅ Apply culture localization
+            var localizationOptions = app.ApplicationServices.GetService<Microsoft.Extensions.Options.IOptions<RequestLocalizationOptions>>().Value;
+            app.UseRequestLocalization(localizationOptions);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -98,23 +115,18 @@ namespace SampleDeliveryService
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.UseCors();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers(); // ✅ Enables [ApiController] routing
-
+                endpoints.MapControllers();
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Orders}/{action=Index}/{id?}");
-
-                endpoints.MapRazorPages(); // ✅ Keeps Razor Pages support
+                endpoints.MapRazorPages();
             });
         }
     }
