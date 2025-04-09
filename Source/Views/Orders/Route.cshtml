@@ -12,22 +12,25 @@
 <script type="text/javascript">
     var map, datasource;
 
-    window.onload = function () {
+    document.addEventListener("DOMContentLoaded", function () {
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(showPosition, function () {
-                alert("Failed to get your location.");
+            navigator.geolocation.getCurrentPosition(showPosition, function (error) {
+                alert("Geolocation failed: " + error.message + ". Using fallback location.");
+                console.warn("Geolocation error:", error);
+                // Fallback to Seattle if user denies or it fails
+                GetMap(-122.33, 47.6);
             });
         } else {
-            alert("Geolocation is not supported by this browser.");
+            alert("Geolocation is not supported by this browser. Using fallback location.");
+            GetMap(-122.33, 47.6);
         }
-    }
 
-    function showPosition(position) {
-        const user_lat = position.coords.latitude;
-        const user_lon = position.coords.longitude;
-
-        GetMap(user_lon, user_lat);
-    }
+        function showPosition(position) {
+            const user_lat = position.coords.latitude;
+            const user_lon = position.coords.longitude;
+            GetMap(user_lon, user_lat);
+        }
+    });
 
     function GetMap(user_lon, user_lat) {
         map = new atlas.Map('myMap', {
