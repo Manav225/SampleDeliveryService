@@ -8,42 +8,78 @@ namespace SampleDeliveryService.Services
     {
         public Task AddItemAsync(Order order)
         {
-            // Do nothing
+            // Simulate adding an item (do nothing)
             return Task.CompletedTask;
         }
 
         public Task DeleteItemAsync(string id)
         {
-            // Do nothing
+            // Simulate delete (do nothing)
             return Task.CompletedTask;
         }
 
         public Task<Order> GetItemAsync(string id)
         {
-            // Return a dummy order
-            return Task.FromResult(new Order
+            // Return a dummy order with realistic properties
+            var order = new Order
             {
                 Id = id,
-                CustomerName = "Test Customer",
-                Product = "Test Product",
-                Quantity = 1
-            });
+                FirstName = "Test",
+                LastName = "User",
+                Packages = 2,
+                Street = "123 Azure Ave",
+                City = "Redmond",
+                State = "WA",
+                ZipCode = 98052,
+                Latitude = "47.673988",
+                Longitude = "-122.121513",
+                Completed = false
+            };
+
+            return Task.FromResult(order);
         }
 
         public Task<IEnumerable<Order>> GetItemsAsync(string query)
         {
             // Return a dummy list of orders
-            var items = new List<Order>
+            var orders = new List<Order>
             {
-                new Order { Id = "1", CustomerName = "Alice", Product = "Item A", Quantity = 2 },
-                new Order { Id = "2", CustomerName = "Bob", Product = "Item B", Quantity = 3 }
+                new Order
+                {
+                    Id = "1",
+                    FirstName = "Alice",
+                    LastName = "Smith",
+                    Packages = 3,
+                    Street = "456 Cosmos Ln",
+                    City = "Seattle",
+                    State = "WA",
+                    ZipCode = 98101,
+                    Latitude = "47.6062",
+                    Longitude = "-122.3321",
+                    Completed = false
+                },
+                new Order
+                {
+                    Id = "2",
+                    FirstName = "Bob",
+                    LastName = "Johnson",
+                    Packages = 1,
+                    Street = "789 Delivery Blvd",
+                    City = "Bellevue",
+                    State = "WA",
+                    ZipCode = 98004,
+                    Latitude = "47.6101",
+                    Longitude = "-122.2015",
+                    Completed = true
+                }
             };
-            return Task.FromResult((IEnumerable<Order>)items);
+
+            return Task.FromResult((IEnumerable<Order>)orders);
         }
 
         public Task UpdateItemAsync(Order order)
         {
-            // Do nothing
+            // Simulate update (do nothing)
             return Task.CompletedTask;
         }
     }
