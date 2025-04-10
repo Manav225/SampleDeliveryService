@@ -79,78 +79,51 @@
 </div>
 
 @section Scripts {
-    <script type="text/javascript">
-        var map, datasource, marker;
+    <script>
+        let map, marker;
 
         const endLat = parseFloat("@Model.Latitude");
         const endLon = parseFloat("@Model.Longitude");
 
-        const geocodeUrl = 'https://{azMapsDomain}/search/address/json?typeahead=true&api-version=1&query={query}&language=en-US&lon={lon}&lat={lat}&countrySet=IN&view=Auto';
+        const geocodeUrlTemplate = 'https://atlas.microsoft.com/search/address/json?api-version=1.0&query={query}&language=en-US&lon={lon}&lat={lat}&countrySet=IN&view=Auto&subscription-key=1A2WqGbNPrXkvJ7fANu170nqymSUlZupgApmCxJi4iqyLyA8yW07JQQJ99BDACYeBjFjiS1pAAAgAZMP21L5';
 
-        function getCookie(name) {
-            const ca = document.cookie.split(';');
-            const nameEQ = name + "=";
-            for (let c of ca) {
-                while (c.charAt(0) === ' ') c = c.substring(1);
-                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
-            }
-            return null;
-        }
-
-        function tokenResolver() {
-            if (this.readyState === 4 && this.status === 200) resolveFunc(this.responseText);
-            else if (this.readyState === 4) rejectFunc(this.responseText);
-        }
-
-        window.onload = function () {
-            var resolveFunc, rejectFunc;
+        function GetMap() {
             map = new atlas.Map('myMap', {
                 center: [endLon, endLat],
                 zoom: 14,
                 view: 'Auto',
                 authOptions: {
-                    authType: "anonymous",
-                    clientId: getClientId(),
-                    getToken: function (resolve, reject, map) {
-                        resolveFunc = resolve;
-                        rejectFunc = reject;
-                        const xhttp = new XMLHttpRequest();
-                        xhttp.onreadystatechange = tokenResolver;
-                        xhttp.open("GET", "/api/token", true);
-                        xhttp.setRequestHeader("Authorization", 'Bearer ' + getCookie("Authorization"));
-                        xhttp.send();
-                    }
+                    authType: "subscriptionKey",
+                    subscriptionKey: "1A2WqGbNPrXkvJ7fANu170nqymSUlZupgApmCxJi4iqyLyA8yW07JQQJ99BDACYeBjFjiS1pAAAgAZMP21L5"
                 }
             });
 
             map.events.add('ready', function () {
-                datasource = new atlas.source.DataSource();
-                map.sources.add(datasource);
-
                 marker = new atlas.HtmlMarker({
                     color: 'orange',
                     position: [endLon, endLat]
                 });
                 map.markers.add(marker);
 
+                // Setup address autocomplete
                 $("#queryTbx").autocomplete({
                     minLength: 3,
                     source: function (request, response) {
                         const center = map.getCamera().center;
-                        let url = geocodeUrl
+                        const url = geocodeUrlTemplate
                             .replace('{query}', encodeURIComponent(request.term))
                             .replace('{lon}', center[0])
-                            .replace('{lat}', center[1])
-                            .replace('{azMapsDomain}', atlas.getDomain());
+                            .replace('{lat}', center[1]);
 
                         fetch(url)
                             .then(res => res.json())
-                            .then(data => response(data.results));
+                            .then(data => response(data.results || []));
                     },
                     select: function (event, ui) {
                         const pos = ui.item.position;
                         const addr = ui.item.address;
 
+                        // Update form fields
                         $("#street_input").val((addr.streetNumber || "") + " " + (addr.streetName || ""));
                         $("#city_input").val(addr.municipality || "");
                         $("#state_input").val(addr.countrySubdivisionName || "");
@@ -158,10 +131,8 @@
                         $("#lat_input").val(pos.lat);
                         $("#lon_input").val(pos.lon);
 
-                        // Remove old marker
+                        // Move marker
                         map.markers.remove(marker);
-
-                        // Add new marker
                         marker = new atlas.HtmlMarker({
                             color: 'green',
                             position: [pos.lon, pos.lat]
@@ -177,7 +148,9 @@
                     return $("<li>").append("<div>" + item.address.freeformAddress + "</div>").appendTo(ul);
                 };
             });
-        };
+        }
+
+        window.onload = GetMap;
     </script>
 
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
