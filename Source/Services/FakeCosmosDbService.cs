@@ -39,6 +39,11 @@ namespace SampleDeliveryService.Services
 
         public Task DeleteItemAsync(string id)
         {
+            var order = _orders.FirstOrDefault(o => o.Id == id);
+            if (order != null)
+            {
+                _orders.Remove(order);
+            }
             return Task.CompletedTask;
         }
 
