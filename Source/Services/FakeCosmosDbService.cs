@@ -25,8 +25,17 @@ namespace SampleDeliveryService.Services
 
         public Task AddItemAsync(Order order)
         {
+            // If ID already exists, replace it
+            var existing = _orders.FirstOrDefault(o => o.Id == order.Id);
+            if (existing != null)
+            {
+                _orders.Remove(existing);
+            }
+        
+            _orders.Add(order);
             return Task.CompletedTask;
         }
+
 
         public Task DeleteItemAsync(string id)
         {
